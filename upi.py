@@ -132,7 +132,7 @@ if uploaded_file:
         st.markdown(f'<div class="result-card"><b>📄 Financial Report for {uploaded_file.name}</b></div>', unsafe_allow_html=True)
         st.write(insights)
         st.markdown('<div class="success-banner">🎉 Analysis Completed! Plan your finances wisely. 🚀</div>', unsafe_allow_html=True)
-        st.balloons()
+        st.snow()
 
     # Delete temp file safely
     try:
