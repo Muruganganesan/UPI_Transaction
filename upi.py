@@ -28,6 +28,7 @@ st.markdown('<p class="sub-title">Upload your Bank Transaction History PDF for F
 st.sidebar.title("ℹ️ How to Use This Tool?")
 st.sidebar.write("- Upload your bank statement PDF.")
 st.sidebar.write("- Enter PDF password if needed.")
+st.sidebar.write("- It will show INCORRECT PASSWORD until you enter the password..")
 st.sidebar.write("- Get AI-generated financial analysis.")
 
 # Upload file
