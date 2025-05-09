@@ -1,0 +1,10 @@
+pandas
+streamlit
+pdfplumber
+openai
+langchain
+python-dotenv
+os
+fitz
+re
+google.generativeai
