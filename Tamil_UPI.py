@@ -8,7 +8,7 @@ import google.generativeai as genai
 
 # Streamlit Secrets-ல் இருந்து API key ஏற்றல்
 try:
-    GEMINI_API_KEY = st.secrets["AIzaSyB18ifF7apBJR1mQKxg9HBdA89TEMn5C3I"]
+    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 except Exception:
     st.error("⚠️ GEMINI_API_KEY Streamlit Secrets-ல் இல்லை. தயவுசெய்து secrets.toml-ல் சேர்க்கவும்.")
     st.stop()
