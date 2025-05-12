@@ -1,13 +1,15 @@
 import os
 import fitz
+import time
 import re
 import pandas as pd
 import streamlit as st
 import google.generativeai as genai
 
 # Configure Gemini API
-GEMINI_API_KEY = "AIzaSyBpFFfOa9f6UlI-GuJDrdlk4ByhGmsLAVU"
-genai.configure(api_key=GEMINI_API_KEY)
+#GEMINI_API_KEY = "AIzaSyBpFFfOa9f6UlI-GuJDrdlk4ByhGmsLAVU"
+#genai.configure(api_key=GEMINI_API_KEY)
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 # Streamlit UI Setup
 st.set_page_config(page_title="Smart Spend AI", page_icon="💰", layout="wide")
@@ -91,8 +93,10 @@ def extract_text_from_pdf(file_path, pdf_password=""):
     except Exception as e:
         return None, f"⚠️ Error: {str(e)}"
 
+import time
+
 def analyze_financial_data(text):
-    model = genai.GenerativeModel("learnlm-1.5-pro-experimental")
+    model = genai.GenerativeModel("gemini-pro")
     prompt = f"""
     Analyze the following Paytm transaction history and generate financial insights:
     {text}
@@ -106,8 +110,16 @@ def analyze_financial_data(text):
     - **Top Spending Categories**
     - **Trends/Recommendations**
     """
-    response = model.generate_content(prompt)
-    return response.text.strip() if response else "⚠️ Error processing financial data."
+    try:
+        for _ in range(3):  # Retry up to 3 times
+            try:
+                response = model.generate_content(prompt)
+                return response.text.strip() if response else "⚠️ No response from Gemini."
+            except Exception as inner_e:
+                time.sleep(2)  # small delay before retry
+        return "❌ Gemini API failed after retries."
+    except Exception as e:
+        return f"⚠️ Gemini API Error: {str(e)}"
 
 # Processing flow
 if uploaded_file:
