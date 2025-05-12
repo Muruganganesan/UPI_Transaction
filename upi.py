@@ -92,7 +92,7 @@ def extract_text_from_pdf(file_path, pdf_password=""):
         return None, f"⚠️ Error: {str(e)}"
 
 def analyze_financial_data(text):
-    model = genai.GenerativeModel("learnlm-1.5-pro-experimental")
+    model = genai.GenerativeModel("gemini-pro")
     prompt = f"""
     Analyze the following Paytm transaction history and generate financial insights:
     {text}
