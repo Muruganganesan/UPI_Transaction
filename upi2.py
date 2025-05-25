@@ -98,7 +98,7 @@ import time
 def analyze_financial_data(text):
     model = genai.GenerativeModel("gemini-pro")
     prompt = f"""
-    Analyze the following Paytm transaction history and generate financial insights:
+    Analyze the following Bank transaction history and generate financial insights:
     {text}
 
     Provide a detailed breakdown in the following format:
