@@ -94,7 +94,7 @@ def extract_text_from_pdf(file_path, pdf_password=""):
 def analyze_financial_data(text):
     model = genai.GenerativeModel("gemini-1.5-pro")
     prompt = f"""
-    Analyze the following Paytm transaction history and generate financial insights:
+    Analyze the following Bank transaction history and generate financial insights:
     {text}
 
     Provide a detailed breakdown in the following format:
