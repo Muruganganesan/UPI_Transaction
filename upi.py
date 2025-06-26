@@ -10,7 +10,7 @@ genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 
 # Streamlit UI Setup
-st.set_page_config(page_title="Smart Spend ", page_icon=" ", layout="wide")
+st.set_page_config(page_title="Smart  Spend ", page_icon=" ", layout="wide")
 
 st.markdown("""
     <style>
@@ -23,7 +23,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<h1 class="main-title"> SmartSpend </h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Upload your Bank Transaction History PDF for Financial Insights</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title"> </p>', unsafe_allow_html=True)
 
 st.sidebar.title("-How to Use This Tool?-")
 st.sidebar.write("- Upload your bank statement PDF.")
