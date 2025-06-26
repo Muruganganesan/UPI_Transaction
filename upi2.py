@@ -1,154 +1,105 @@
 import os
 import fitz
-import time
 import re
 import pandas as pd
 import streamlit as st
 import google.generativeai as genai
 
-# Configure Gemini API
-#GEMINI_API_KEY = "AIzaSyBpFFfOa9f6UlI-GuJDrdlk4ByhGmsLAVU"
-#genai.configure(api_key=GEMINI_API_KEY)
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+# Set up Gemini API Key
+GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+genai.configure(api_key=GEMINI_API_KEY)
 
-# Streamlit UI Setup
-st.set_page_config(page_title="Smart Spend AI", page_icon="💰", layout="wide")
+# Streamlit App Setup
+st.set_page_config(page_title="Finance Insight Pro", page_icon="📊", layout="wide")
 
-st.markdown("""
-    <style>
-    .main-title { text-align: center; font-size: 34px; font-weight: bold; color: #4CAF50; }
-    .sub-title { text-align: center; font-size: 18px; color: #ddd; margin-bottom: 20px; }
-    .result-card { background: rgba(0, 150, 136, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 10px; }
-    .success-banner { background: linear-gradient(to right, #2E7D32, #1B5E20); color: white;
-                      padding: 15px; font-size: 18px; border-radius: 8px; text-align: center; font-weight: bold; }
-    </style>
-""", unsafe_allow_html=True)
+st.title("📊 Finance Insight Pro")
+st.caption("AI-powered Bank Statement Analyzer using Google Gemini")
 
-st.markdown('<h1 class="main-title"> SmartSpend </h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Upload your Bank Transaction History PDF for Financial Insights</p>', unsafe_allow_html=True)
+# Sidebar Instructions
+with st.sidebar:
+    st.header("🔍 How to Use")
+    st.markdown("1. Upload your Bank PDF Statement")
+    st.markdown("2. Enter PDF password if applicable")
+    st.markdown("3. View AI-based financial analysis")
 
-st.sidebar.title("-How to Use This Tool?-")
-st.sidebar.write("- Upload your bank statement PDF.")
-st.sidebar.write("- Enter PDF password if needed.")
-st.sidebar.write("- It will show INCORRECT PASSWORD until you enter the password..")
-st.sidebar.write("- Get AI-generated financial analysis.")
+# File uploader
+uploaded_file = st.file_uploader("📄 Upload your PDF bank statement", type=["pdf"])
+pdf_password = st.text_input("🔐 PDF Password (if protected):", type="password") if uploaded_file else ""
 
-# Upload file
-uploaded_file = st.file_uploader("📂 Upload PDF File", type=["pdf"])
-pdf_password = st.text_input("🔐 Enter PDF Password (if any):", type="password") if uploaded_file else ""
-
-def extract_text_from_pdf(file_path, pdf_password=""):
+# Function: Extract text and structure data from PDF
+def extract_pdf_text(file_path, password=""):
     try:
         doc = fitz.open(file_path)
+        if doc.needs_pass and not doc.authenticate(password):
+            return None, "❌ Incorrect password."
 
-        if doc.needs_pass:
-            if not doc.authenticate(pdf_password):
-                doc.close()
-                return None, "❌ Incorrect password. Please try again."
-
-        all_text = ""
-        for page in doc:
-            all_text += page.get_text()
+        raw_text = "".join(page.get_text() for page in doc)
         doc.close()
 
+        # Sample regex extraction logic (customize per bank)
         pattern = re.compile(
-            r"(\d{2}-\d{2}-\d{4})\s+"
-            r"([A-Z\*\/\-]+)?\s*"
-            r"((?:UPI|NEFT|RTGS|IMPS|CHEQUE|ATM|B/F|SBIN|[A-Za-z0-9@\/\-\.\s]+?))\s+"
-            r"([\d,]+\.\d{2})?\s*"
-            r"([\d,]+\.\d{2})?\s*"
-            r"([\d,]+\.\d{2})"
+            r"(\d{2}-\d{2}-\d{4})\s+.*?([A-Za-z0-9\s@/-]+)\s+([\d,]+\.\d{2})?\s*([\d,]+\.\d{2})?\s*([\d,]+\.\d{2})"
         )
+        matches = pattern.findall(raw_text)
 
-        matches = pattern.findall(all_text)
-        data, previous_balance = [], None
-
-        for m in matches:
-            date = m[0]
-            mode = m[1].strip() if m[1] else ""
-            particulars = m[2].replace('\n', ' ').strip()
-            current_balance = float(m[5].replace(',', ''))
-
-            if previous_balance is None:
-                deposits, withdrawals = 0.0, 0.0
-            else:
-                diff = round(current_balance - previous_balance, 2)
-                deposits = diff if diff > 0 else 0.0
-                withdrawals = abs(diff) if diff < 0 else 0.0
-
-            data.append({
+        rows, prev_balance = [], None
+        for date, description, credit, debit, balance in matches:
+            balance = float(balance.replace(",", ""))
+            credit = float(credit.replace(",", "")) if credit else 0
+            debit = float(debit.replace(",", "")) if debit else 0
+            rows.append({
                 "Date": date,
-                "Mode": mode,
-                "Particulars": particulars,
-                "Deposits": deposits,
-                "Withdrawals": withdrawals,
-                "Balance": current_balance
+                "Description": description.strip(),
+                "Credit": credit,
+                "Debit": debit,
+                "Balance": balance
             })
+            prev_balance = balance
 
-            previous_balance = current_balance
-
-        df = pd.DataFrame(data)
+        df = pd.DataFrame(rows)
         return df.to_string(index=False), None
 
     except Exception as e:
-        return None, f"⚠️ Error: {str(e)}"
+        return None, f"⚠️ Error: {e}"
 
-import time
+# Function: Analyze using Gemini
 
-def analyze_financial_data(text):
-    model = genai.GenerativeModel("gemini-pro")
+def analyze_with_gemini(text):
+    model = genai.GenerativeModel("gemini-1.5-pro")
     prompt = f"""
-    Analyze the following Bank transaction history and generate financial insights:
+    Given the following bank transaction history:
     {text}
 
-    Provide a detailed breakdown in the following format:
-
-    **Financial Insights**
-
-    - **Monthly Income/Expense Summary**
-    - **Savings Percentage**
-    - **Top Spending Categories**
-    - **Trends/Recommendations**
+    Analyze and summarize:
+    - Monthly income and spending
+    - Categories with most expenses
+    - Percentage of savings
+    - Red flags and recommendations
     """
-    try:
-        for _ in range(3):  # Retry up to 3 times
-            try:
-                response = model.generate_content(prompt)
-                return response.text.strip() if response else "⚠️ No response from Gemini."
-            except Exception as inner_e:
-                time.sleep(2)  # small delay before retry
-        return "❌ Gemini API failed after retries."
-    except Exception as e:
-        return f"⚠️ Gemini API Error: {str(e)}"
+    response = model.generate_content(prompt)
+    return response.text.strip() if response else "⚠️ Error generating response."
 
-# Processing flow
+# App Logic
 if uploaded_file:
     file_path = f"temp_{uploaded_file.name}"
     with open(file_path, "wb") as f:
         f.write(uploaded_file.read())
 
-    with st.spinner("📄 Extracting text from PDF..."):
-        extracted_text, error_msg = extract_text_from_pdf(file_path, pdf_password)
+    with st.spinner("📄 Reading PDF..."):
+        extracted, error = extract_pdf_text(file_path, pdf_password)
 
-    if error_msg:
-        st.error(error_msg)
-    elif not extracted_text:
-        st.warning("⚠️ No text could be extracted. Try another file.")
+    if error:
+        st.error(error)
+    elif not extracted:
+        st.warning("No valid text found. Check PDF format.")
     else:
-        st.success("✅ PDF processed successfully!")
-        progress_bar = st.progress(0)
-        with st.spinner("🧠 AI is analyzing your financial data..."):
-            insights = analyze_financial_data(extracted_text)
-        progress_bar.progress(100)
+        st.success("✅ Data extracted successfully!")
+        with st.spinner("🧠 Analyzing with Gemini..."):
+            result = analyze_with_gemini(extracted)
+        st.subheader("🔍 AI Financial Insights")
+        st.markdown(result)
 
-        st.subheader("📊 Financial Insights Report")
-        st.markdown(f'<div class="result-card"><b>📄 Financial Report for {uploaded_file.name}</b></div>', unsafe_allow_html=True)
-        st.write(insights)
-        st.markdown('<div class="success-banner">🎉 Analysis Completed! Plan your finances wisely. 🚀</div>', unsafe_allow_html=True)
-        st.snow()
-
-    # Delete temp file safely
     try:
         os.remove(file_path)
-    except PermissionError:
-        st.warning("⚠️ Temporary file could not be deleted. Please close any open PDF viewers.")
+    except:
+        pass
