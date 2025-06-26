@@ -24,10 +24,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<h1 class="main-title">💰 SmartSpend AI</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-title"> SmartSpend </h1>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">Upload your Bank Transaction History PDF for Financial Insights</p>', unsafe_allow_html=True)
 
-st.sidebar.title("ℹ️ How to Use This Tool?")
+st.sidebar.title("-How to Use This Tool?-")
 st.sidebar.write("- Upload your bank statement PDF.")
 st.sidebar.write("- Enter PDF password if needed.")
 st.sidebar.write("- It will show INCORRECT PASSWORD until you enter the password..")
