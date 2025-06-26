@@ -10,7 +10,7 @@ genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 
 # Streamlit UI Setup
-st.set_page_config(page_title="Smart Spend AI", page_icon="💰", layout="wide")
+st.set_page_config(page_title="Smart Spend ", page_icon=" ", layout="wide")
 
 st.markdown("""
     <style>
