@@ -5,9 +5,8 @@ import pandas as pd
 import streamlit as st
 import google.generativeai as genai
 
-# Set up Gemini API Key
-GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
-genai.configure(api_key=GEMINI_API_KEY)
+# Configure Gemini API
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 # Streamlit App Setup
 st.set_page_config(page_title="Finance Insight Pro", page_icon="📊", layout="wide")
