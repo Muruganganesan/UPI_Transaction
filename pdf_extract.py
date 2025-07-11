@@ -4,22 +4,22 @@ import pandas as pd
 import getpass
 
 pdf_path = r'C:\Users\admin\Music\Guvi\Final_project\Statement_APR2025_902773597.pdf'
-# User-இன் input மூலம் password வாங்குதல்
+# Password acquisition through user input
 pdf_password = getpass.getpass("Enter the PDF password: ")
 
 
-# PDF open செய்யும்
+# PDF open 
 doc = fitz.open(pdf_path)
 if doc.needs_pass:
     if not doc.authenticate(pdf_password):
         raise ValueError("Incorrect password")
 
-# PDF-இல் உள்ள அனைத்து பக்கங்களின் text-ஐ சேகரித்தல்
+# Collecting text from all pages in a PDF
 all_text = ""
 for page in doc:
     all_text += page.get_text()
 
-# Transaction table-இல் உள்ள ஒவ்வொரு வரியையும் regex-ஆல் பிடித்தல்
+# Capturing each row in the transaction table with regex
 # Pattern: Date, Mode, Particulars, Deposits, Withdrawals, Balance
 pattern = re.compile(
     r"(\d{2}-\d{2}-\d{4})\s+"                  # Date (dd-mm-yyyy)
@@ -32,8 +32,7 @@ pattern = re.compile(
 
 matches = pattern.findall(all_text)
 
-# Extracted data-வை DataFrame-ஆக மாற்றுதல்
-# Extracted data-வை DataFrame-ஆக மாற்றுதல்
+# Converting extracted data into a DataFrame
 data = []
 previous_balance = None
 
@@ -74,7 +73,7 @@ for m in matches:
 
 df = pd.DataFrame(data)
 
-# DataFrame-ஐ CSV ஆக சேமித்தல்
+# Saving a DataFrame as CSV
 df.to_csv("icici_transactions.csv", index=False)
 
 print("Extraction complete! Data saved to icici_transactions.csv")
