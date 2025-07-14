@@ -22,7 +22,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<h1 class="main-title"> SmartSpend </h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-title"> SmartSpend AI </h1>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title"> </p>', unsafe_allow_html=True)
 
 st.sidebar.title("-How to Use This Tool?-")
