@@ -8,9 +8,8 @@ import google.generativeai as genai
 # Configure Gemini API
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
-
 # Streamlit UI Setup
-st.set_page_config(page_title="Smart  Spend ", page_icon=" ", layout="wide")
+st.set_page_config(page_title="SmartSpend AI", page_icon=" ", layout="wide")
 
 st.markdown("""
     <style>
@@ -50,12 +49,12 @@ def extract_text_from_pdf(file_path, pdf_password=""):
         doc.close()
 
         pattern = re.compile(
-            r"(\d{2}-\d{2}-\d{4})\s+"
-            r"([A-Z\*\/\-]+)?\s*"
-            r"((?:UPI|NEFT|RTGS|IMPS|CHEQUE|ATM|B/F|SBIN|[A-Za-z0-9@\/\-\.\s]+?))\s+"
-            r"([\d,]+\.\d{2})?\s*"
-            r"([\d,]+\.\d{2})?\s*"
-            r"([\d,]+\.\d{2})"
+            r"(\d{2}-\d{2}-\d{4})\s+"  # Date format
+            r"([A-Z\*\/\-]+)?\s*"  # Mode of transaction
+            r"((?:UPI|NEFT|RTGS|IMPS|CHEQUE|ATM|B/F|SBIN|[A-Za-z0-9@\/\-\.\s]+?))\s+"  # Particulars
+            r"([\d,]+\.\d{2})?\s*"  # Deposit amount
+            r"([\d,]+\.\d{2})?\s*"  # Withdrawal amount
+            r"([\d,]+\.\d{2})"  # Balance
         )
 
         matches = pattern.findall(all_text)
@@ -115,29 +114,32 @@ if uploaded_file:
     with open(file_path, "wb") as f:
         f.write(uploaded_file.read())
 
-    with st.spinner("📄 Extracting text from PDF..."):
-        extracted_text, error_msg = extract_text_from_pdf(file_path, pdf_password)
+    # Create a button to trigger analysis after uploading the file
+    start_analysis_button = st.button("🔍 Start Financial Analysis")
 
-    if error_msg:
-        st.error(error_msg)
-    elif not extracted_text:
-        st.warning("⚠️ No text could be extracted. Try another file.")
-    else:
-        st.success("✅ PDF processed successfully!")
-        progress_bar = st.progress(0)
-        with st.spinner("🧠 AI is analyzing your financial data..."):
-            insights = analyze_financial_data(extracted_text)
-        progress_bar.progress(100)
+    if start_analysis_button:
+        with st.spinner("📄 Extracting text from PDF..."):
+            extracted_text, error_msg = extract_text_from_pdf(file_path, pdf_password)
 
-        st.subheader("📊 Financial Insights Report")
-        st.markdown(f'<div class="result-card"><b>📄 Financial Report for {uploaded_file.name}</b></div>', unsafe_allow_html=True)
-        st.write(insights)
-        st.markdown('<div class="success-banner">🎉 Analysis Completed! Plan your finances wisely. 🚀</div>', unsafe_allow_html=True)
-        st.snow()
+        if error_msg:
+            st.error(error_msg)
+        elif not extracted_text:
+            st.warning("⚠️ No text could be extracted. Try another file.")
+        else:
+            st.success("✅ PDF processed successfully!")
+            progress_bar = st.progress(0)
+            with st.spinner("🧠 AI is analyzing your financial data..."):
+                insights = analyze_financial_data(extracted_text)
+            progress_bar.progress(100)
 
-    # Delete temp file safely
-    try:
-        os.remove(file_path)
-    except PermissionError:
-        st.warning("⚠️ Temporary file could not be deleted. Please close any open PDF viewers.")
+            st.subheader("📊 Financial Insights Report")
+            st.markdown(f'<div class="result-card"><b>📄 Financial Report for {uploaded_file.name}</b></div>', unsafe_allow_html=True)
+            st.write(insights)
+            st.markdown('<div class="success-banner">🎉 Analysis Completed! Plan your finances wisely. 🚀</div>', unsafe_allow_html=True)
+            st.snow()
 
+        # Delete temp file safely
+        try:
+            os.remove(file_path)
+        except PermissionError:
+            st.warning("⚠️ Temporary file could not be deleted. Please close any open PDF viewers.")
