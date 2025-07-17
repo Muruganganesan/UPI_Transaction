@@ -8,9 +8,8 @@ import google.generativeai as genai
 # Configure Gemini API
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
-
 # Streamlit UI Setup
-st.set_page_config(page_title="Smart  Spend ", page_icon=" ", layout="wide")
+st.set_page_config(page_title="SmartSpend AI", page_icon=" ", layout="wide")
 
 st.markdown("""
     <style>
@@ -23,26 +22,25 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<h1 class="main-title"> SmartSpend AI </h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title"> </p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title"> Intelligent Financial Insights from Your Bank Statement </p>', unsafe_allow_html=True)
 
-st.sidebar.title("-How to Use This Tool?-")
+st.sidebar.title("- How to Use This Tool -")
 st.sidebar.write("- Upload your bank statement PDF.")
 st.sidebar.write("- Enter PDF password if needed.")
-st.sidebar.write("- It will show INCORRECT PASSWORD until you enter the password..")
-st.sidebar.write("- Get AI-generated financial analysis.")
+st.sidebar.write("- You will get full transaction extract + only UPI transactions + AI insights.")
 
 # Upload file
 uploaded_file = st.file_uploader("📂 Upload PDF File", type=["pdf"])
 pdf_password = st.text_input("🔐 Enter PDF Password (if any):", type="password") if uploaded_file else ""
 
-def extract_text_from_pdf(file_path, pdf_password=""):
+def extract_and_filter_pdf(file_path, pdf_password=""):
     try:
         doc = fitz.open(file_path)
 
         if doc.needs_pass:
             if not doc.authenticate(pdf_password):
                 doc.close()
-                return None, "❌ Incorrect password. Please try again."
+                return None, None, "❌ Incorrect password. Please try again."
 
         all_text = ""
         for page in doc:
@@ -50,12 +48,12 @@ def extract_text_from_pdf(file_path, pdf_password=""):
         doc.close()
 
         pattern = re.compile(
-            r"(\d{2}-\d{2}-\d{4})\s+"
-            r"([A-Z\*\/\-]+)?\s*"
-            r"((?:UPI|NEFT|RTGS|IMPS|CHEQUE|ATM|B/F|SBIN|[A-Za-z0-9@\/\-\.\s]+?))\s+"
-            r"([\d,]+\.\d{2})?\s*"
-            r"([\d,]+\.\d{2})?\s*"
-            r"([\d,]+\.\d{2})"
+            r"(\d{2}-\d{2}-\d{4})\s+"  
+            r"([A-Z\*\/\-]+)?\s*"  
+            r"((?:UPI|NEFT|RTGS|IMPS|CHEQUE|ATM|B/F|SBIN|[A-Za-z0-9@\/\-\.\s]+?))\s+"  
+            r"([\d,]+\.\d{2})?\s*"  
+            r"([\d,]+\.\d{2})?\s*"  
+            r"([\d,]+\.\d{2})"  
         )
 
         matches = pattern.findall(all_text)
@@ -86,10 +84,18 @@ def extract_text_from_pdf(file_path, pdf_password=""):
             previous_balance = current_balance
 
         df = pd.DataFrame(data)
-        return df.to_string(index=False), None
+
+        # Filter UPI transactions using Particulars
+        upi_df = df[df['Particulars'].str.upper().str.contains("UPI")]
+
+        # Save to CSV
+        df.to_csv("all_transactions.csv", index=False)
+        upi_df.to_csv("upi_transactions.csv", index=False)
+
+        return df, upi_df, None
 
     except Exception as e:
-        return None, f"⚠️ Error: {str(e)}"
+        return None, None, f"⚠️ Error: {str(e)}"
 
 def analyze_financial_data(text):
     model = genai.GenerativeModel("gemini-1.5-pro")
@@ -115,28 +121,41 @@ if uploaded_file:
     with open(file_path, "wb") as f:
         f.write(uploaded_file.read())
 
-    with st.spinner("📄 Extracting text from PDF..."):
-        extracted_text, error_msg = extract_text_from_pdf(file_path, pdf_password)
+    start_analysis_button = st.button("🔍 Start Financial Analysis")
 
-    if error_msg:
-        st.error(error_msg)
-    elif not extracted_text:
-        st.warning("⚠️ No text could be extracted. Try another file.")
-    else:
-        st.success("✅ PDF processed successfully!")
-        progress_bar = st.progress(0)
-        with st.spinner("🧠 AI is analyzing your financial data..."):
-            insights = analyze_financial_data(extracted_text)
-        progress_bar.progress(100)
+    if start_analysis_button:
+        with st.spinner("📄 Extracting transactions from PDF..."):
+            df, upi_df, error_msg = extract_and_filter_pdf(file_path, pdf_password)
 
-        st.subheader("📊 Financial Insights Report")
-        st.markdown(f'<div class="result-card"><b>📄 Financial Report for {uploaded_file.name}</b></div>', unsafe_allow_html=True)
-        st.write(insights)
-        st.markdown('<div class="success-banner">🎉 Analysis Completed! Plan your finances wisely. 🚀</div>', unsafe_allow_html=True)
-        st.snow()
+        if error_msg:
+            st.error(error_msg)
+        elif df is None or df.empty:
+            st.warning("⚠️ No transactions found in PDF.")
+        else:
+            st.success("✅ PDF processed successfully!")
 
-    # Delete temp file safely
-    try:
-        os.remove(file_path)
-    except PermissionError:
-        st.warning("⚠️ Temporary file could not be deleted. Please close any open PDF viewers.")
+            st.subheader("📄 All Transactions Preview")
+            st.dataframe(df)
+
+            st.subheader("💸 Only UPI Transactions Preview")
+            if upi_df.empty:
+                st.info("No UPI transactions found.")
+            else:
+                st.dataframe(upi_df)
+
+            # Download buttons
+            st.download_button("⬇️ Download All Transactions CSV", data=df.to_csv(index=False), file_name="all_transactions.csv", mime="text/csv")
+            st.download_button("⬇️ Download UPI Transactions CSV", data=upi_df.to_csv(index=False), file_name="upi_transactions.csv", mime="text/csv")
+
+            # AI Analysis
+            st.subheader("🤖 AI Financial Insights")
+            with st.spinner("🧠 Gemini AI is analyzing your data..."):
+                insights = analyze_financial_data(df.to_string(index=False))
+            st.markdown(f'<div class="result-card"><b>📊 Insights:</b><br>{insights}</div>', unsafe_allow_html=True)
+            st.markdown('<div class="success-banner">🎉 Analysis Completed! Manage your spending smarter. 🚀</div>', unsafe_allow_html=True)
+            st.snow()
+
+        try:
+            os.remove(file_path)
+        except:
+            pass
